@@ -97,7 +97,7 @@ fn validate_request(req: &Request, value_check: bool) -> Result<(), TransformErr
     // Is this valid JSON?
     if !gjson::valid(convert_bytes_to_string(&req.data)?) {
         return Err(TransformError::Generic(
-            "data is not valid JSON".to_string(),
+            format!("data is not valid JSON: {}", str::from_utf8(&req.data).unwrap()),
         ));
     }
 
@@ -126,6 +126,7 @@ mod tests {
     "baz": {
         "qux": "quux"
     },
+    "recipient": "tledwichb9@wsj.com",
     "bool": true
 }"#;
 
@@ -190,6 +191,29 @@ mod tests {
         // path not a string
         req.path = "bool".to_string();
         assert!(mask(&req).is_err());
+    }
+
+    #[test]
+    fn test_mask_email() {
+        for _ in 0..1000000 {
+            let req = Request {
+                data: TEST_DATA.as_bytes().to_vec(),
+                path: "recipient".to_string(),
+                value: "".to_string(), // needs a default
+            };
+
+            let result = mask(&req).unwrap();
+
+            assert!(gjson::valid(TEST_DATA));
+            assert!(gjson::valid(&result));
+
+            let v = gjson::get(TEST_DATA, "recipient");
+            assert_eq!(v.str(), "tledwichb9@wsj.com");
+
+            let v2 = gjson::get(result.as_str(), "recipient");
+            assert_ne!(v2.str(), "tledwichb9@wsj.com");
+            assert_eq!(v2.str(), "tled**************");
+        }
     }
 
     #[test]
