@@ -97,7 +97,7 @@ fn validate_request(req: &Request, value_check: bool) -> Result<(), TransformErr
     // Is this valid JSON?
     if !gjson::valid(convert_bytes_to_string(&req.data)?) {
         return Err(TransformError::Generic(
-            format!("data is not valid JSON: {}", str::from_utf8(&req.data).unwrap()),
+            format!("data is not valid JSON: {}", String::from_utf8(req.data).unwrap()),
         ));
     }
 
